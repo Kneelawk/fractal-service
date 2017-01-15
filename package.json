@@ -4,6 +4,7 @@
   "dependencies": {
     "express": "^4.14.0",
     "mathjs": "^3.8.1",
-    "pngjs": "^3.0.0"
+    "pngjs": "^3.0.0",
+    "uuid": "^3.0.1"
   }
 }
