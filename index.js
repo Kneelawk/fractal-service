@@ -13,6 +13,7 @@ let fractals = {};
 app.post('/api/generate', (req, res) => {
   let id = uuid.v4();
   fractals[id] = new Fractal(
+    id,
     req.body.imageWidth || 300,
     req.body.imageHeight || 200,
     req.body.fractalWidth || 3,
@@ -68,7 +69,7 @@ app.post('/api/result', (req, res) => {
   let fractal = fractals[req.body.uuid];
   if (fractal.done()) {
     res.type('image/png');
-    return fractal.png.pack().pipe(res);
+    return fractal.stream().pipe(res);
   } else {
     res.type('json');
     return res.send(JSON.stringify({

@@ -1,10 +1,18 @@
 const Png = require('pngjs').PNG;
 const math = require('mathjs');
+const fs = require('fs');
+const path = require('path');
 const fromHSB = require('./colorutil.js').fromHSB;
 const mod2 = require('./mathutils.js').mod2;
 
+const fractalsDir = './fractals';
+
+fs.mkdirSync(fractalsDir);
+
 class Fractal {
-  constructor(imageWidth, imageHeight, fractalWidth, fractalHeight, fractalX, fractalY, constantReal, constantImmaginary, iterations, f) {
+  constructor(uuid, imageWidth, imageHeight, fractalWidth, fractalHeight, fractalX, fractalY, constantReal, constantImmaginary, iterations, f) {
+    this.uuid = uuid;
+    this.file = path.join(fractalsDir, uuid);
     this.imageWidth = imageWidth;
     this.imageHeight = imageHeight;
     this.fractalWidth = fractalWidth;
@@ -41,9 +49,24 @@ class Fractal {
 
           // node is single threaded
           this.pixelsGenerated++;
+          if (this.done()) {
+            this.save();
+          }
         });
       }
     }
+  }
+
+  save() {
+    this.png.pack().pipe(fs.createWriteStream(this.file));
+  }
+
+  stream() {
+    return fs.createReadStream(this.file);
+  }
+
+  destroy() {
+    fs.unlink(this.file);
   }
 
   progress() {
