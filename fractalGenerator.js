@@ -4,13 +4,15 @@ const fromHSB = require('./colorutil.js').fromHSB;
 const mod2 = require('./mathutils.js').mod2;
 
 class Fractal {
-  constructor(imageWidth, imageHeight, fractalWidth, fractalHeight, fractalX, fractalY, iterations, f) {
+  constructor(imageWidth, imageHeight, fractalWidth, fractalHeight, fractalX, fractalY, constantReal, constantImmaginary, iterations, f) {
     this.imageWidth = imageWidth;
     this.imageHeight = imageHeight;
     this.fractalWidth = fractalWidth;
     this.fractalHeight = fractalHeight;
     this.fractalMinX = fractalX - fractalWidth / 2;
     this.fractalMinY = fractalY - fractalHeight / 2;
+    this.constantReal = constantReal;
+    this.constantImmaginary = constantImmaginary;
     this.iterations = iterations;
     this.f = f;
     this.png = new Png({
@@ -18,14 +20,15 @@ class Fractal {
       height: imageHeight,
       hasInputAlpha: true
     });
-    this.progress = 0;
+    this.pixelsGenerated = 0;
   }
 
   start() {
-    this.progress = 0;
+    this.pixelsGenerated = 0;
 
     for (let y = 0; y < this.imageHeight; y++) {
       for (let x = 0; x < this.imageWidth; x++) {
+        // let other fractals gen at the same time
         setImmediate(() => {
           let i = (x + y * this.imageWidth) * 4;
 
@@ -36,21 +39,30 @@ class Fractal {
           this.png.data[i + 2] = color.b;
           this.png.data[i + 3] = color.a;
 
-          this.progress = (x + y * this.imageWidth) * 100 / (this.imageWidth * this.imageHeight);
+          // node is single threaded
+          this.pixelsGenerated++;
         });
       }
     }
   }
 
+  progress() {
+    return this.pixelsGenerated / (this.imageWidth * this.imageHeight);
+  }
+
+  done() {
+    return this.pixelsGenerated >= (this.imageWidth * this.imageHeight);
+  }
+
   genPixel(x, y) {
     let fx = x * this.fractalWidth / this.imageWidth + this.fractalMinX;
-    let fx = y * this.fractalHeight / this.imageHeight + this.fractalMinY;
+    let fy = y * this.fractalHeight / this.imageHeight + this.fractalMinY;
 
     let z = math.complex(fx, fy);
 
     let n;
     for (n = 0; n < this.iterations; n++) {
-      z = this.f(z, math.complex(fx, fy));
+      z = this.f(z, math.complex(fx, fy), math.complex(this.constantReal, this.constantImmaginary));
 
       if (z.re * z.re + z.im * z.im > 16) {
         break;
@@ -71,3 +83,5 @@ class Fractal {
     }
   }
 }
+
+module.exports = Fractal;

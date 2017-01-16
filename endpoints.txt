@@ -1,0 +1,36 @@
+POST /api/generate
+  data: {
+    imageWidth: the width of the fractal in pixels, defaults to 300
+    imageHeight: the height of the fractal in pixels, defaults to 200
+    fractalWidth: the width of the area generated in the complex plane (3 will cover most of a julia set), defaults to 3
+    fractalHeight: the height of the area generated in the complex plane (2 will cover most of a julia set), defaults to 2
+    fractalX: the x center of the area generated in the complex plane (0 is the center of a julia set), defaults to 0
+    fractalY: the y center of the area generated in the complex plane (0 is the center of a julia set), defaults to 0
+    constantReal: the real component of the constant in the fractal function, defaults to 0
+    constantImmaginary: the imaginary part of the constant in the fractal function, defaults to 0
+    iterations: the maximum number of iterations the complex number has to break out before its pixel is colored black, defaults to 100
+    f: an object representing the mathematical function to be used every iteration, unimplemented
+  }
+  returns: {
+    uuid: a request uuid to be used for updates
+  }
+
+GET /api/progress
+  query:
+    uuid: the request uuid returned from the /api/generate
+  returns: {
+    pixelsGenerated: the number of pixels generated so far
+    pixelsTotal: the number of pixels in the fractal
+    done: whether fractal is finished generating
+  }
+
+GET /api/result
+  query:
+    uuid: the request uuid returned from the /api/generate
+  returns:
+    if completed: a png image of the generated fractal
+    if not completed: {
+      pixelsGenerated: the number of pixels generated so far
+      pixelsTotal: the number of pixels in the fractal
+      done: will always be false
+    }

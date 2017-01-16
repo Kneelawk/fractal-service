@@ -53,6 +53,6 @@ function fromHSB(hue, saturation, brightness) {
   };
 }
 
-module.export = {
+module.exports = {
   fromHSB
 };
