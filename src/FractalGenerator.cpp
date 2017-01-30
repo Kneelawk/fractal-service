@@ -8,10 +8,10 @@
 
 FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
 		void (*doneCallback)(v8::Isolate *isolate,
-				v8::Local<v8::Object> nodeBuffer, void *doneCallbackData),
-		v8::Local<v8::Object> buf, void *doneCallbackData, int width,
-		int height, double fractalWidth, double fractalHeight, double fracgtalX,
-		double fractalY, int iterations) :
+				v8::Local<v8::Object> nodeBuffer, bool halted,
+				void *doneCallbackData), v8::Local<v8::Object> buf,
+		void *doneCallbackData, int width, int height, double fractalWidth,
+		double fractalHeight, double fracgtalX, double fractalY, int iterations) :
 		id(id), doneCallback(doneCallback), doneCallbackData(doneCallbackData), width(
 				width), height(height), fractalWidth(fractalWidth), fractalHeight(
 				fractalHeight), fractalX(fractalX), fractalY(fractalY), iterations(
@@ -42,6 +42,10 @@ void FractalGenerator::start() {
 	thread = new std::thread(&FractalGenerator::threadFunction, this);
 }
 
+void FractalGenerator::halt() {
+	halting.store(true);
+}
+
 int FractalGenerator::getProgress() {
 	return progress.load();
 }
@@ -60,7 +64,7 @@ void FractalGenerator::doneAsyncCallback(uv_async_t *handle) {
 	v8::Isolate *isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope scope(isolate);
 	(*self->doneCallback)(isolate, self->nodeBuffer->Get(isolate),
-			self->doneCallbackData);
+			self->halting.load(), self->doneCallbackData);
 	self->nodeBuffer->Reset();
 }
 
@@ -77,6 +81,12 @@ void FractalGenerator::threadFunction() {
 
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
+			if (halting.load()) {
+				generating.store(false);
+				uv_async_send(doneAsync);
+				return;
+			}
+
 			// get buffer index
 			i = x + y * width;
 

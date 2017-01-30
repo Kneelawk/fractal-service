@@ -24,13 +24,16 @@ public:
 
 	FractalGenerator(fractalId id, v8::Isolate *isolate,
 			void (*doneCallback)(v8::Isolate *isolate,
-					v8::Local<v8::Object> nodeBuffer, void *doneCallbackData),
-			v8::Local<v8::Object> buf, void *doneCallbackData, int width,
-			int height, double fractalWidth, double fractalHeight,
-			double fracgtalX, double fractalY, int iterations);
+					v8::Local<v8::Object> nodeBuffer, bool halted,
+					void *doneCallbackData), v8::Local<v8::Object> buf,
+			void *doneCallbackData, int width, int height, double fractalWidth,
+			double fractalHeight, double fracgtalX, double fractalY,
+			int iterations);
 	virtual ~FractalGenerator();
 
 	void start();
+
+	void halt();
 
 	int getProgress();
 
@@ -43,6 +46,7 @@ private:
 	// fractal generation stats
 	std::atomic_bool generating;
 	std::atomic_uint progress;
+	std::atomic_bool halting;
 
 	// buffers
 	v8::Global<v8::Object> *nodeBuffer;
@@ -53,7 +57,7 @@ private:
 
 	// callback
 	void (*doneCallback)(v8::Isolate *isolate, v8::Local<v8::Object> nodeBuffer,
-			void *doneCallbackData);
+			bool halted, void *doneCallbackData);
 	void *doneCallbackData;
 
 	static void doneAsyncCallback(uv_async_t *handle);
