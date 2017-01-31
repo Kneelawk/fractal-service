@@ -4,6 +4,16 @@
 #include <string>
 #include "FractalGenerator.h"
 
+#define JS_LENGTH_CHECK(info, length) if (info.Length() < length) {	\
+	Nan::ThrowTypeError("Wrong number of arguments, must be at least " #length);	\
+	return;	\
+}
+
+#define JS_TYPE_CHECK(info, index, typeCheck) if (!info[index]->typeCheck()) {	\
+	Nan::ThrowTypeError("Wrong argument type, failed test " #typeCheck);	\
+	return;	\
+}
+
 std::unordered_map<std::string, FractalGenerator *> generators;
 
 typedef struct {
@@ -40,7 +50,19 @@ void createFractalGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	 * Int		iterations		: the number of iterations before a pixel turns black
 	 */
 
-	// TODO check arg types
+	// type checks
+	JS_LENGTH_CHECK(info, 10)
+	JS_TYPE_CHECK(info, 0, IsString)
+	JS_TYPE_CHECK(info, 1, IsFunction)
+	JS_TYPE_CHECK(info, 2, IsObject)
+	JS_TYPE_CHECK(info, 3, IsNumber)
+	JS_TYPE_CHECK(info, 4, IsNumber)
+	JS_TYPE_CHECK(info, 5, IsNumber)
+	JS_TYPE_CHECK(info, 6, IsNumber)
+	JS_TYPE_CHECK(info, 7, IsNumber)
+	JS_TYPE_CHECK(info, 8, IsNumber)
+	JS_TYPE_CHECK(info, 9, IsNumber)
+
 	// get args
 	std::string uuid(*v8::String::Utf8Value(info[0]));
 	v8::Local<v8::Function> doneCallback = info[1].As<v8::Function>();
@@ -70,14 +92,8 @@ void startGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	 * String	uuid	: uuid of the fractal
 	 */
 
-	if (info.Length() < 1) {
-		Nan::ThrowTypeError("Wrong number of arguments");
-		return;
-	}
-	if (!info[0]->IsString()) {
-		Nan::ThrowTypeError("Wrong argument type");
-		return;
-	}
+	JS_LENGTH_CHECK(info, 1)
+	JS_TYPE_CHECK(info, 0, IsString)
 
 	std::string uuid(*v8::String::Utf8Value(info[0]));
 	if (generators.find(uuid) != generators.end()) {
@@ -90,14 +106,8 @@ void startGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 
 void getProgress(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	// uuid is argument
-	if (info.Length() < 1) {
-		Nan::ThrowTypeError("Wrong number of arguments");
-		return;
-	}
-	if (!info[0]->IsString()) {
-		Nan::ThrowTypeError("Wrong argument type");
-		return;
-	}
+	JS_LENGTH_CHECK(info, 1)
+	JS_TYPE_CHECK(info, 0, IsString)
 
 	std::string uuid(*v8::String::Utf8Value(info[0]));
 	if (generators.find(uuid) != generators.end()) {
@@ -110,14 +120,8 @@ void getProgress(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 
 void containsFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	// uuid is argument
-	if (info.Length() < 1) {
-		Nan::ThrowTypeError("Wrong number of arguments");
-		return;
-	}
-	if (!info[0]->IsString()) {
-		Nan::ThrowTypeError("Wrong argument type");
-		return;
-	}
+	JS_LENGTH_CHECK(info, 1)
+	JS_TYPE_CHECK(info, 0, IsString)
 
 	std::string uuid(*v8::String::Utf8Value(info[0]));
 	info.GetReturnValue().Set(generators.find(uuid) != generators.end());
@@ -136,14 +140,8 @@ void listFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 
 void haltFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 // uuid is argument
-	if (info.Length() < 1) {
-		Nan::ThrowTypeError("Wrong number of arguments");
-		return;
-	}
-	if (!info[0]->IsString()) {
-		Nan::ThrowTypeError("Wrong argument type");
-		return;
-	}
+	JS_LENGTH_CHECK(info, 1)
+	JS_TYPE_CHECK(info, 0, IsString)
 
 	std::string uuid(*v8::String::Utf8Value(info[0]));
 	if (generators.find(uuid) != generators.end()) {
