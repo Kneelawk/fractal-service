@@ -48,11 +48,11 @@ app.post('/api/progress', (req, res) => {
 
   let fractal = fractals[req.body.uuid];
   res.type('json');
-  let pixelsGenerated = fractal.pixelsGenerated();
+  let status = fractal.status();
   return res.send(JSON.stringify({
-    pixelsGenerated: pixelsGenerated,
+    pixelsGenerated: status.progress,
     totalPixels: fractal.imageWidth * fractal.imageHeight,
-    done: Fractal.done(fractal, pixelsGenerated)
+    done: Fractal.done(status)
   }));
 });
 
@@ -68,14 +68,14 @@ app.post('/api/result', (req, res) => {
     }));
   }
   let fractal = fractals[req.body.uuid];
-  let pixelsGenerated = fractal.pixelsGenerated();
-  if (Fractal.done(fractal, pixelsGenerated)) {
+  let status = fractal.status();
+  if (Fractal.done(status)) {
     res.type('image/png');
     return fractal.stream().pipe(res);
   } else {
     res.type('json');
     return res.send(JSON.stringify({
-      pixelsGenerated: pixelsGenerated,
+      pixelsGenerated: status.progress,
       totalPixels: fractal.imageWidth * fractal.imageHeight,
       done: false
     }));

@@ -58,12 +58,12 @@ class Fractal {
   }
 }
 
-Fractal.done = function (fractal, pixelsGenerated) {
-  return pixelsGenerated >= (fractal.imageWidth * fractal.imageHeight);
+Fractal.done = function (status) {
+  return status.progress >= status.maxProgress;
 }
 
-Fractal.progress = function (fractal, pixelsGenerated) {
-  return pixelsGenerated / (this.imageWidth * this.imageHeight);
+Fractal.progress = function (status) {
+  return status.progress / status.maxProgress;
 }
 
 module.exports = Fractal;

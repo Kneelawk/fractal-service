@@ -11,7 +11,7 @@ FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
 				v8::Local<v8::Object> nodeBuffer, bool halted,
 				void *doneCallbackData), v8::Local<v8::Value> bufVal,
 		void *doneCallbackData, unsigned int width, unsigned int height,
-		double fractalWidth, double fractalHeight, double fracgtalX,
+		double fractalWidth, double fractalHeight, double fractalX,
 		double fractalY, unsigned int iterations) :
 		id(id), doneCallback(doneCallback), doneCallbackData(doneCallbackData), width(
 				width), height(height), fractalWidth(fractalWidth), fractalHeight(
