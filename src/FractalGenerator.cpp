@@ -26,7 +26,6 @@ FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
 	buffer = node::Buffer::Data(buf);
 
 	doneAsync = new uv_async_t;
-	// TODO switch to std::bind because c++ 11
 	doneAsync->data = this;
 	uv_loop_t *loop = uv_default_loop();
 	uv_async_init(loop, doneAsync, doneAsyncCallback);
@@ -59,7 +58,6 @@ bool FractalGenerator::isGenerating() {
  */
 
 void FractalGenerator::doneAsyncCallback(uv_async_t *handle) {
-	// TODO switch to std::bind because c++ 11
 	FractalGenerator *self = ((FractalGenerator *) handle->data);
 	v8::Isolate *isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope scope(isolate);
