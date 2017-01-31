@@ -28,6 +28,10 @@ void fractalDoneCallback(v8::Isolate *isolate, v8::Local<v8::Object> buffer,
 	v8::Local<v8::Function> func = fd->jsCallback.Get(isolate);
 	v8::Local<v8::Value> args[] = { Nan::New(halted), buffer };
 	func->Call(isolate->GetCurrentContext(), func, 2, args);
+}
+
+void deleteCallback(FractalGenerator *gen, void *deleteCallbackData) {
+	FractalData *fd = (FractalData *) deleteCallbackData;
 
 	generators.erase(fd->id);
 
@@ -83,6 +87,7 @@ void createFractalGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	FractalGenerator *gen = new FractalGenerator(uuid, info.GetIsolate(),
 			fractalDoneCallback, buffer, fd, width, height, fractalWidth,
 			fractalHeight, fractalX, fractalY, iterations);
+	gen->setDeleteCallback(deleteCallback, fd);
 	generators.insert(std::pair<std::string, FractalGenerator *>(uuid, gen));
 }
 
@@ -159,6 +164,27 @@ void haltAllFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	}
 }
 
+void destroyFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+	// uuid is argument
+	JS_LENGTH_CHECK(info, 1)
+	JS_TYPE_CHECK(info, 0, IsString)
+
+	std::string uuid(*v8::String::Utf8Value(info[0]));
+	if (generators.find(uuid) != generators.end()) {
+		delete generators[uuid];
+	} else {
+		Nan::ThrowRangeError(
+				(std::string("No fractal with uuid ") + uuid).c_str());
+	}
+}
+
+void destroyAllFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+	// no arguments
+	for (const auto &elem : generators) {
+		delete elem.second;
+	}
+}
+
 void init(v8::Local<v8::Object> exports) {
 	exports->Set(Nan::New("createFractalGenerator").ToLocalChecked(),
 			Nan::New<v8::FunctionTemplate>(createFractalGenerator)->GetFunction());
@@ -174,6 +200,10 @@ void init(v8::Local<v8::Object> exports) {
 			Nan::New<v8::FunctionTemplate>(haltFractal)->GetFunction());
 	exports->Set(Nan::New("haltAllFractals").ToLocalChecked(),
 			Nan::New<v8::FunctionTemplate>(haltAllFractals)->GetFunction());
+	exports->Set(Nan::New("destroyFractal").ToLocalChecked(),
+			Nan::New<v8::FunctionTemplate>(destroyFractal)->GetFunction());
+	exports->Set(Nan::New("destroyAllFractals").ToLocalChecked(),
+			Nan::New<v8::FunctionTemplate>(destroyAllFractals)->GetFunction());
 
 }
 

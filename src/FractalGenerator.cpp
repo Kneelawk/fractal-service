@@ -32,9 +32,20 @@ FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
 }
 
 FractalGenerator::~FractalGenerator() {
+	if (deleteCallback) {
+		deleteCallback(this, deleteCallbackData);
+	}
+
 	nodeBuffer->Reset();
 	delete nodeBuffer;
 	delete doneAsync;
+}
+
+void FractalGenerator::setDeleteCallback(
+		void (*deleteCallback)(FractalGenerator *gen, void *deleteCallbackData),
+		void *deleteCallbackData) {
+	this->deleteCallback = deleteCallback;
+	this->deleteCallbackData = deleteCallbackData;
 }
 
 void FractalGenerator::start() {

@@ -31,6 +31,10 @@ public:
 			int iterations);
 	virtual ~FractalGenerator();
 
+	void setDeleteCallback(
+			void (*deleteCallback)(FractalGenerator *gen,
+					void *deleteCallbackData), void *deleteCallbackData);
+
 	void start();
 
 	void halt();
@@ -59,6 +63,11 @@ private:
 	void (*doneCallback)(v8::Isolate *isolate, v8::Local<v8::Object> nodeBuffer,
 			bool halted, void *doneCallbackData);
 	void *doneCallbackData;
+
+	// delete callback
+	void (*deleteCallback)(FractalGenerator *gen,
+			void *deleteCallbackData) = NULL;
+	void *deleteCallbackData = NULL;
 
 	static void doneAsyncCallback(uv_async_t *handle);
 
