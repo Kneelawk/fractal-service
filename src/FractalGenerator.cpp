@@ -16,9 +16,9 @@ FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
 				width), height(height), fractalWidth(fractalWidth), fractalHeight(
 				fractalHeight), fractalX(fractalX), fractalY(fractalY), iterations(
 				iterations) {
-	if (node::Buffer::Length(buf) < (width * height * 4)) {
-		throw new std::invalid_argument(
-				"node::Buffer::Length(buf) < (width * height * 4)");
+	if (buf->IsNull() || buf->IsUndefined()
+			|| node::Buffer::Length(buf) < (width * height * 4)) {
+		buf = Nan::NewBuffer(width * height * 4);
 	}
 
 	nodeBuffer = new v8::Global<v8::Object>;
