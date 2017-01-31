@@ -18,7 +18,7 @@ FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
 				iterations) {
 	if (buf->IsNull() || buf->IsUndefined()
 			|| node::Buffer::Length(buf) < (width * height * 4)) {
-		buf = Nan::NewBuffer(width * height * 4);
+		buf = Nan::NewBuffer(width * height * 4).ToLocalChecked();
 	}
 
 	nodeBuffer = new v8::Global<v8::Object>;
