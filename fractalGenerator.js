@@ -1,8 +1,6 @@
 const math = require('mathjs');
 const fs = require('fs');
 const path = require('path');
-const fromHSB = require('./colorutil.js').fromHSB;
-const mod2 = require('./mathutils.js').mod2;
 const native_fractal_service = require('bindings')('fractal_service_native');
 
 const fractalsDir = './fractals';
