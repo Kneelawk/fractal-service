@@ -12,7 +12,7 @@ typedef struct {
 } FractalData;
 
 void fractalDoneCallback(v8::Isolate *isolate, v8::Local<v8::Object> buffer,
-		bool halted, void *customData) {
+bool halted, void *customData) {
 	FractalData *fd = (FractalData *) customData;
 
 	v8::Local<v8::Function> func = fd->jsCallback.Get(isolate);
@@ -123,8 +123,35 @@ void containsFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	info.GetReturnValue().Set(generators.find(uuid) != generators.end());
 }
 
+void listFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+	// TODO list fractals
+}
+
 void haltFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-	// TODO add halt interface
+	// uuid is argument
+	if (info.Length() < 1) {
+		Nan::ThrowTypeError("Wrong number of arguments");
+		return;
+	}
+	if (!info[0]->IsString()) {
+		Nan::ThrowTypeError("Wrong argument type");
+		return;
+	}
+
+	std::string uuid(*v8::String::Utf8Value(info[0]));
+	if (generators.find(uuid) != generators.end()) {
+		generators[uuid]->halt();
+	} else {
+		Nan::ThrowRangeError(
+				(std::string("No fractal with uuid ") + uuid).c_str());
+	}
+}
+
+void haltAllFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+	// no arguments
+	for (const auto &elem : generators) {
+		elem.second->halt();
+	}
 }
 
 void init(v8::Local<v8::Object> exports) {
@@ -136,6 +163,7 @@ void init(v8::Local<v8::Object> exports) {
 			Nan::New<v8::FunctionTemplate>(getProgress)->GetFunction());
 	exports->Set(Nan::New("containsFractal").ToLocalChecked(),
 			Nan::New<v8::FunctionTemplate>(containsFractal)->GetFunction());
+
 }
 
 NODE_MODULE(fractal_service_native, init)
