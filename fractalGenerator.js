@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const fromHSB = require('./colorutil.js').fromHSB;
 const mod2 = require('./mathutils.js').mod2;
+const native_fractal_service = require('bindings')('fractal_service_native');
 
 const fractalsDir = './fractals';
 
@@ -29,36 +30,40 @@ class Fractal {
       height: imageHeight,
       hasInputAlpha: true
     });
-    this.pixelsGenerated = 0;
+    native_fractal_service.createFractalGenerator(this.uuid,
+      (halted, buffer) => this.save(halted, buffer), this.png.data, this.imageWidth,
+      this.imageHeight, this.fractalWidth, this.fractalHeight, this.fractalMinX,
+      this.fractalMinY, this.iterations);
   }
 
   start() {
-    this.pixelsGenerated = 0;
-
-    for (let y = 0; y < this.imageHeight; y++) {
-      for (let x = 0; x < this.imageWidth; x++) {
-        // let other fractals gen at the same time
-        setImmediate(() => {
-          let i = (x + y * this.imageWidth) * 4;
-
-          this.genPixel(x, y, (color) => {
-            this.png.data[i] = color.r;
-            this.png.data[i + 1] = color.g;
-            this.png.data[i + 2] = color.b;
-            this.png.data[i + 3] = color.a;
-
-            // node is single threaded
-            this.pixelsGenerated++;
-            if (this.done()) {
-              this.save();
-            }
-          });
-        });
-      }
-    }
+    native_fractal_service.startGenerator(this.uuid);
+    // this.pixelsGenerated = 0;
+    //
+    // for (let y = 0; y < this.imageHeight; y++) {
+    //   for (let x = 0; x < this.imageWidth; x++) {
+    //     // let other fractals gen at the same time
+    //     setImmediate(() => {
+    //       let i = (x + y * this.imageWidth) * 4;
+    //
+    //       this.genPixel(x, y, (color) => {
+    //         this.png.data[i] = color.r;
+    //         this.png.data[i + 1] = color.g;
+    //         this.png.data[i + 2] = color.b;
+    //         this.png.data[i + 3] = color.a;
+    //
+    //         // node is single threaded
+    //         this.pixelsGenerated++;
+    //         if (this.done()) {
+    //           this.save();
+    //         }
+    //       });
+    //     });
+    //   }
+    // }
   }
 
-  save() {
+  save(halted, buffer) {
     this.png.pack().pipe(fs.createWriteStream(this.file));
   }
 
@@ -71,41 +76,43 @@ class Fractal {
   }
 
   progress() {
-    return this.pixelsGenerated / (this.imageWidth * this.imageHeight);
+    let pixelsGenerated = native_fractal_service.getProgress(this.uuid);
+    return pixelsGenerated / (this.imageWidth * this.imageHeight);
   }
 
   done() {
-    return this.pixelsGenerated >= (this.imageWidth * this.imageHeight);
+    let pixelsGenerated = native_fractal_service.getProgress(this.uuid);
+    return pixelsGenerated >= (this.imageWidth * this.imageHeight);
   }
 
-  genPixel(x, y, callback) {
-    let fx = x * this.fractalWidth / this.imageWidth + this.fractalMinX;
-    let fy = y * this.fractalHeight / this.imageHeight + this.fractalMinY;
-
-    let z = math.complex(fx, fy);
-    let n = 0;
-
-    let calc = () => {
-      if (n >= this.iterations) {
-        callback({
-          r: 0,
-          g: 0,
-          b: 0,
-          a: 255
-        });
-      } else if (z.re * z.re + z.im + z.im > 16) {
-        let color = fromHSB(mod2(n * 3.3, 0.0, 256.0) / 256.0, 1.0, mod2(n * 16.0, 0.0, 256.0) / 256.0);
-        color.a = 255;
-        callback(color);
-      } else {
-        n++;
-        z = this.f(z, math.complex(fx, fy), this.constant);
-        setImmediate(calc);
-      }
-    };
-
-    setImmediate(calc);
-  }
+  // genPixel(x, y, callback) {
+  //   let fx = x * this.fractalWidth / this.imageWidth + this.fractalMinX;
+  //   let fy = y * this.fractalHeight / this.imageHeight + this.fractalMinY;
+  //
+  //   let z = math.complex(fx, fy);
+  //   let n = 0;
+  //
+  //   let calc = () => {
+  //     if (n >= this.iterations) {
+  //       callback({
+  //         r: 0,
+  //         g: 0,
+  //         b: 0,
+  //         a: 255
+  //       });
+  //     } else if (z.re * z.re + z.im + z.im > 16) {
+  //       let color = fromHSB(mod2(n * 3.3, 0.0, 256.0) / 256.0, 1.0, mod2(n * 16.0, 0.0, 256.0) / 256.0);
+  //       color.a = 255;
+  //       callback(color);
+  //     } else {
+  //       n++;
+  //       z = this.f(z, math.complex(fx, fy), this.constant);
+  //       setImmediate(calc);
+  //     }
+  //   };
+  //
+  //   setImmediate(calc);
+  // }
 }
 
 module.exports = Fractal;
