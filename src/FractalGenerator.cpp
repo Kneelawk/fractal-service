@@ -10,8 +10,9 @@ FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
 		void (*doneCallback)(v8::Isolate *isolate,
 				v8::Local<v8::Object> nodeBuffer, bool halted,
 				void *doneCallbackData), v8::Local<v8::Value> bufVal,
-		void *doneCallbackData, int width, int height, double fractalWidth,
-		double fractalHeight, double fractalX, double fractalY, int iterations) :
+		void *doneCallbackData, unsigned int width, unsigned int height,
+		double fractalWidth, double fractalHeight, double fracgtalX,
+		double fractalY, unsigned int iterations) :
 		id(id), doneCallback(doneCallback), doneCallbackData(doneCallbackData), width(
 				width), height(height), fractalWidth(fractalWidth), fractalHeight(
 				fractalHeight), fractalX(fractalX), fractalY(fractalY), iterations(
@@ -66,12 +67,14 @@ void FractalGenerator::halt() {
 	halting.store(true);
 }
 
-int FractalGenerator::getProgress() {
-	return progress.load();
-}
-
-bool FractalGenerator::isGenerating() {
-	return generating.load();
+GenerationStatus FractalGenerator::getStatus() {
+	return {
+		width,
+		height,
+		progress.load(),
+		generating.load(),
+		halting.load()
+	};
 }
 
 /*
@@ -95,7 +98,7 @@ void FractalGenerator::threadFunction() {
 
 	// does this make things faster or is this redundant with g++ optimization?
 	float fx, fy, a, b, aa, bb, twoab;
-	int x, y, i, n;
+	unsigned int x, y, i, n;
 	RGBData color;
 
 	for (y = 0; y < height; y++) {

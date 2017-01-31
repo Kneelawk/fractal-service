@@ -53,8 +53,8 @@ class Fractal {
     fs.unlink(this.file);
   }
 
-  pixelsGenerated() {
-    return native_fractal_service.getProgress(this.uuid);
+  status() {
+    return native_fractal_service.getStatus(this.uuid);
   }
 }
 

@@ -113,14 +113,26 @@ void startGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	}
 }
 
-void getProgress(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+void getStatus(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	// uuid is argument
 	JS_LENGTH_CHECK(info, 1)
 	JS_TYPE_CHECK(info, 0, IsString)
 
 	std::string uuid(*v8::String::Utf8Value(info[0]));
 	if (generators.find(uuid) != generators.end()) {
-		info.GetReturnValue().Set(generators[uuid]->getProgress());
+		GenerationStatus status = generators[uuid]->getStatus();
+		v8::Local<v8::Object> out = Nan::New<v8::Object>();
+		out->Set(Nan::New("width").ToLocalChecked(), Nan::New(status.width));
+		out->Set(Nan::New("height").ToLocalChecked(), Nan::New(status.height));
+		out->Set(Nan::New("maxProgress").ToLocalChecked(),
+				Nan::New(status.width * status.height));
+		out->Set(Nan::New("progress").ToLocalChecked(),
+				Nan::New(status.progress));
+		out->Set(Nan::New("generating").ToLocalChecked(),
+				Nan::New(status.generating));
+		out->Set(Nan::New("canceling").ToLocalChecked(),
+				Nan::New(status.halting));
+		info.GetReturnValue().Set(out);
 	} else {
 		Nan::ThrowRangeError(
 				(std::string("No fractal with uuid ") + uuid).c_str());
@@ -194,8 +206,8 @@ void init(v8::Local<v8::Object> exports) {
 			Nan::New<v8::FunctionTemplate>(createFractalGenerator)->GetFunction());
 	exports->Set(Nan::New("startGenerator").ToLocalChecked(),
 			Nan::New<v8::FunctionTemplate>(startGenerator)->GetFunction());
-	exports->Set(Nan::New("getProgress").ToLocalChecked(),
-			Nan::New<v8::FunctionTemplate>(getProgress)->GetFunction());
+	exports->Set(Nan::New("getStatus").ToLocalChecked(),
+			Nan::New<v8::FunctionTemplate>(getStatus)->GetFunction());
 	exports->Set(Nan::New("containsFractal").ToLocalChecked(),
 			Nan::New<v8::FunctionTemplate>(containsFractal)->GetFunction());
 	exports->Set(Nan::New("listFractals").ToLocalChecked(),

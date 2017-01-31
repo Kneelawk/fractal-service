@@ -6,6 +6,14 @@
 #include <atomic>
 #include <string>
 
+typedef struct {
+	unsigned int width;
+	unsigned int height;
+	unsigned int progress;
+	bool generating;
+	bool halting;
+} GenerationStatus;
+
 typedef std::string fractalId;
 
 class FractalGenerator {
@@ -14,21 +22,21 @@ public:
 	fractalId id;
 
 	// settings
-	int width;
-	int height;
+	unsigned int width;
+	unsigned int height;
 	double fractalWidth;
 	double fractalHeight;
 	double fractalX;
 	double fractalY;
-	int iterations;
+	unsigned int iterations;
 
 	FractalGenerator(fractalId id, v8::Isolate *isolate,
 			void (*doneCallback)(v8::Isolate *isolate,
 					v8::Local<v8::Object> nodeBuffer, bool halted,
-					void *doneCallbackData), v8::Local<v8::Value> buf,
-			void *doneCallbackData, int width, int height, double fractalWidth,
-			double fractalHeight, double fracgtalX, double fractalY,
-			int iterations);
+					void *doneCallbackData), v8::Local<v8::Value> bufVal,
+			void *doneCallbackData, unsigned int width, unsigned int height,
+			double fractalWidth, double fractalHeight, double fracgtalX,
+			double fractalY, unsigned int iterations);
 	virtual ~FractalGenerator();
 
 	void setDeleteCallback(
@@ -39,9 +47,7 @@ public:
 
 	void halt();
 
-	int getProgress();
-
-	bool isGenerating();
+	GenerationStatus getStatus();
 
 private:
 	// thread
