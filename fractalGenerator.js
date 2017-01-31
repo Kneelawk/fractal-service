@@ -72,17 +72,12 @@ class Fractal {
   }
 
   destroy() {
+    native_fractal_service.destroyFractal(this.uuid);
     fs.unlink(this.file);
   }
 
-  progress() {
-    let pixelsGenerated = native_fractal_service.getProgress(this.uuid);
-    return pixelsGenerated / (this.imageWidth * this.imageHeight);
-  }
-
-  done() {
-    let pixelsGenerated = native_fractal_service.getProgress(this.uuid);
-    return pixelsGenerated >= (this.imageWidth * this.imageHeight);
+  pixelsGenerated() {
+    return native_fractal_service.getProgress(this.uuid);
   }
 
   // genPixel(x, y, callback) {
@@ -113,6 +108,14 @@ class Fractal {
   //
   //   setImmediate(calc);
   // }
+}
+
+Fractal.done = function (fractal, pixelsGenerated) {
+  return pixelsGenerated >= (fractal.imageWidth * fractal.imageHeight);
+}
+
+Fractal.progress = function (fractal, pixelsGenerated) {
+  return pixelsGenerated / (this.imageWidth * this.imageHeight);
 }
 
 module.exports = Fractal;

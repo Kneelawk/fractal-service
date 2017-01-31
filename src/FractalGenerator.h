@@ -25,7 +25,7 @@ public:
 	FractalGenerator(fractalId id, v8::Isolate *isolate,
 			void (*doneCallback)(v8::Isolate *isolate,
 					v8::Local<v8::Object> nodeBuffer, bool halted,
-					void *doneCallbackData), v8::Local<v8::Object> buf,
+					void *doneCallbackData), v8::Local<v8::Value> buf,
 			void *doneCallbackData, int width, int height, double fractalWidth,
 			double fractalHeight, double fracgtalX, double fractalY,
 			int iterations);

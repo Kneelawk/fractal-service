@@ -9,26 +9,36 @@
 FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
 		void (*doneCallback)(v8::Isolate *isolate,
 				v8::Local<v8::Object> nodeBuffer, bool halted,
-				void *doneCallbackData), v8::Local<v8::Object> buf,
+				void *doneCallbackData), v8::Local<v8::Value> bufVal,
 		void *doneCallbackData, int width, int height, double fractalWidth,
-		double fractalHeight, double fracgtalX, double fractalY, int iterations) :
+		double fractalHeight, double fractalX, double fractalY, int iterations) :
 		id(id), doneCallback(doneCallback), doneCallbackData(doneCallbackData), width(
 				width), height(height), fractalWidth(fractalWidth), fractalHeight(
 				fractalHeight), fractalX(fractalX), fractalY(fractalY), iterations(
 				iterations) {
-	if (buf->IsNull() || buf->IsUndefined()
-			|| node::Buffer::Length(buf) < (width * height * 4)) {
-		buf = Nan::NewBuffer(width * height * 4).ToLocalChecked();
-	}
-
 	nodeBuffer = new v8::Global<v8::Object>;
-	nodeBuffer->Reset(isolate, buf);
-	buffer = node::Buffer::Data(buf);
+
+	if (bufVal->IsNull() || bufVal->IsUndefined()
+			|| node::Buffer::Length(bufVal) < (width * height * 4)) {
+		v8::Local<v8::Object> buf =
+				Nan::NewBuffer(width * height * 4).ToLocalChecked();
+
+		nodeBuffer->Reset(isolate, buf);
+		buffer = node::Buffer::Data(buf);
+	} else {
+		v8::Local<v8::Object> buf = bufVal->ToObject();
+		nodeBuffer->Reset(isolate, buf);
+		buffer = node::Buffer::Data(buf);
+	}
 
 	doneAsync = new uv_async_t;
 	doneAsync->data = this;
 	uv_loop_t *loop = uv_default_loop();
 	uv_async_init(loop, doneAsync, doneAsyncCallback);
+
+	generating.store(false);
+	progress.store(0);
+	halting.store(false);
 }
 
 FractalGenerator::~FractalGenerator() {
@@ -97,7 +107,7 @@ void FractalGenerator::threadFunction() {
 			}
 
 			// get buffer index
-			i = x + y * width;
+			i = (x + y * width) * 4;
 
 			// pixel value generation
 			fx = x * fractalWidth / width + fractalX;

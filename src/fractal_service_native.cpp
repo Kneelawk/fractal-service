@@ -58,7 +58,11 @@ void createFractalGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	JS_LENGTH_CHECK(info, 10)
 	JS_TYPE_CHECK(info, 0, IsString)
 	JS_TYPE_CHECK(info, 1, IsFunction)
-	JS_TYPE_CHECK(info, 2, IsObject)
+	if (!(info[2]->IsObject() || info[2]->IsUndefined() || info[2]->IsNull())) {
+		Nan::ThrowTypeError(
+				"Wrong argument type, failed test IsObject or IsUndefined or IsNull");
+		return;
+	}
 	JS_TYPE_CHECK(info, 3, IsNumber)
 	JS_TYPE_CHECK(info, 4, IsNumber)
 	JS_TYPE_CHECK(info, 5, IsNumber)
@@ -70,7 +74,7 @@ void createFractalGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	// get args
 	std::string uuid(*v8::String::Utf8Value(info[0]));
 	v8::Local<v8::Function> doneCallback = info[1].As<v8::Function>();
-	v8::Local<v8::Object> buffer = info[2]->ToObject();
+	v8::Local<v8::Value> buffer = info[2];
 	int width = info[3]->Int32Value();
 	int height = info[4]->Int32Value();
 	double fractalWidth = info[5]->NumberValue();
