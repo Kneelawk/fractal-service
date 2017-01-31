@@ -21,12 +21,14 @@ typedef struct {
 	std::string id;
 } FractalData;
 
-void fractalDoneCallback(v8::Isolate *isolate, v8::Local<v8::Object> buffer,
-		bool halted, void *customData) {
+void fractalDoneCallback(v8::Isolate *isolate, std::string path,
+		GenerationState state, void *customData) {
 	FractalData *fd = (FractalData *) customData;
 
 	v8::Local<v8::Function> func = fd->jsCallback.Get(isolate);
-	v8::Local<v8::Value> args[] = { Nan::New(halted), buffer };
+	v8::Local<v8::Value> args[] = {
+			Nan::New(generationStateName(state)).ToLocalChecked(), Nan::New(
+					path).ToLocalChecked() };
 	func->Call(isolate->GetCurrentContext(), func, 2, args);
 }
 
@@ -44,7 +46,7 @@ void createFractalGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	 * Args:
 	 * String	uuid			: frctal id
 	 * Function	doneCallback	: callback for when the fractal is done
-	 * Buffer	buffer			: the buffer the fractal should write to
+	 * String	path			: the buffer the fractal should write to
 	 * Int		width			: the image width of the fractal
 	 * Int		height			: the image height of the fractal
 	 * Double	fractalWidth	: the complex width (real) of the fractal
@@ -58,11 +60,7 @@ void createFractalGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	JS_LENGTH_CHECK(info, 10)
 	JS_TYPE_CHECK(info, 0, IsString)
 	JS_TYPE_CHECK(info, 1, IsFunction)
-	if (!(info[2]->IsObject() || info[2]->IsUndefined() || info[2]->IsNull())) {
-		Nan::ThrowTypeError(
-				"Wrong argument type, failed test IsObject or IsUndefined or IsNull");
-		return;
-	}
+	JS_TYPE_CHECK(info, 2, IsString)
 	JS_TYPE_CHECK(info, 3, IsNumber)
 	JS_TYPE_CHECK(info, 4, IsNumber)
 	JS_TYPE_CHECK(info, 5, IsNumber)
@@ -74,7 +72,7 @@ void createFractalGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	// get args
 	std::string uuid(*v8::String::Utf8Value(info[0]));
 	v8::Local<v8::Function> doneCallback = info[1].As<v8::Function>();
-	v8::Local<v8::Value> buffer = info[2];
+	std::string path(*v8::String::Utf8Value(info[2]));
 	int width = info[3]->Int32Value();
 	int height = info[4]->Int32Value();
 	double fractalWidth = info[5]->NumberValue();
@@ -89,7 +87,7 @@ void createFractalGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	fd->jsCallback.Reset(info.GetIsolate(), doneCallback);
 
 	FractalGenerator *gen = new FractalGenerator(uuid, info.GetIsolate(),
-			fractalDoneCallback, buffer, fd, width, height, fractalWidth,
+			fractalDoneCallback, path, fd, width, height, fractalWidth,
 			fractalHeight, fractalX, fractalY, iterations);
 	gen->setDeleteCallback(deleteCallback, fd);
 	generators.insert(std::pair<std::string, FractalGenerator *>(uuid, gen));
@@ -128,11 +126,8 @@ void getStatus(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 				Nan::New(status.width * status.height));
 		out->Set(Nan::New("progress").ToLocalChecked(),
 				Nan::New(status.progress));
-		out->Set(Nan::New("generating").ToLocalChecked(),
-				Nan::New(status.generating));
-		out->Set(Nan::New("canceling").ToLocalChecked(),
-				Nan::New(status.halting));
-		out->Set(Nan::New("done").ToLocalChecked(), Nan::New(status.done));
+		out->Set(Nan::New("state").ToLocalChecked(),
+				Nan::New(generationStateName(status.state)).ToLocalChecked());
 		info.GetReturnValue().Set(out);
 	} else {
 		Nan::ThrowRangeError(
@@ -160,24 +155,24 @@ void listFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	info.GetReturnValue().Set(fractals);
 }
 
-void haltFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+void cancelFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	// uuid is argument
 	JS_LENGTH_CHECK(info, 1)
 	JS_TYPE_CHECK(info, 0, IsString)
 
 	std::string uuid(*v8::String::Utf8Value(info[0]));
 	if (generators.find(uuid) != generators.end()) {
-		generators[uuid]->halt();
+		generators[uuid]->cancel();
 	} else {
 		Nan::ThrowRangeError(
 				(std::string("No fractal with uuid ") + uuid).c_str());
 	}
 }
 
-void haltAllFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
+void cancelAllFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	// no arguments
 	for (const auto &elem : generators) {
-		elem.second->halt();
+		elem.second->cancel();
 	}
 }
 
@@ -213,10 +208,10 @@ void init(v8::Local<v8::Object> exports) {
 			Nan::New<v8::FunctionTemplate>(containsFractal)->GetFunction());
 	exports->Set(Nan::New("listFractals").ToLocalChecked(),
 			Nan::New<v8::FunctionTemplate>(listFractals)->GetFunction());
-	exports->Set(Nan::New("haltFractal").ToLocalChecked(),
-			Nan::New<v8::FunctionTemplate>(haltFractal)->GetFunction());
-	exports->Set(Nan::New("haltAllFractals").ToLocalChecked(),
-			Nan::New<v8::FunctionTemplate>(haltAllFractals)->GetFunction());
+	exports->Set(Nan::New("cancelFractal").ToLocalChecked(),
+			Nan::New<v8::FunctionTemplate>(cancelFractal)->GetFunction());
+	exports->Set(Nan::New("cancelAllFractals").ToLocalChecked(),
+			Nan::New<v8::FunctionTemplate>(cancelAllFractals)->GetFunction());
 	exports->Set(Nan::New("destroyFractal").ToLocalChecked(),
 			Nan::New<v8::FunctionTemplate>(destroyFractal)->GetFunction());
 	exports->Set(Nan::New("destroyAllFractals").ToLocalChecked(),

@@ -1,4 +1,5 @@
-#include <stdexcept>
+#include <png.h>
+#include <cstdio>
 #include "FractalGenerator.h"
 #include "math_utils.h"
 
@@ -7,40 +8,23 @@
  */
 
 FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
-		void (*doneCallback)(v8::Isolate *isolate,
-				v8::Local<v8::Object> nodeBuffer, bool halted,
-				void *doneCallbackData), v8::Local<v8::Value> bufVal,
-		void *doneCallbackData, unsigned int width, unsigned int height,
-		double fractalWidth, double fractalHeight, double fractalX,
-		double fractalY, unsigned int iterations) :
+		void (*doneCallback)(v8::Isolate *isolate, std::string path,
+				GenerationState state, void *doneCallbackData),
+		std::string path, void *doneCallbackData, unsigned int width,
+		unsigned int height, double fractalWidth, double fractalHeight,
+		double fractalX, double fractalY, unsigned int iterations) :
 		id(id), doneCallback(doneCallback), doneCallbackData(doneCallbackData), width(
 				width), height(height), fractalWidth(fractalWidth), fractalHeight(
 				fractalHeight), fractalX(fractalX), fractalY(fractalY), iterations(
 				iterations) {
-	nodeBuffer = new v8::Global<v8::Object>;
-
-	if (bufVal->IsNull() || bufVal->IsUndefined()
-			|| node::Buffer::Length(bufVal) < (width * height * 4)) {
-		v8::Local<v8::Object> buf =
-				Nan::NewBuffer(width * height * 4).ToLocalChecked();
-
-		nodeBuffer->Reset(isolate, buf);
-		buffer = node::Buffer::Data(buf);
-	} else {
-		v8::Local<v8::Object> buf = bufVal->ToObject();
-		nodeBuffer->Reset(isolate, buf);
-		buffer = node::Buffer::Data(buf);
-	}
 
 	doneAsync = new uv_async_t;
 	doneAsync->data = this;
 	uv_loop_t *loop = uv_default_loop();
 	uv_async_init(loop, doneAsync, doneAsyncCallback);
 
-	generating.store(false);
 	progress.store(0);
-	halting.store(false);
-	done.store(false);
+	state.store(INITIALIZING);
 }
 
 FractalGenerator::~FractalGenerator() {
@@ -48,8 +32,6 @@ FractalGenerator::~FractalGenerator() {
 		deleteCallback(this, deleteCallbackData);
 	}
 
-	nodeBuffer->Reset();
-	delete nodeBuffer;
 	delete doneAsync;
 }
 
@@ -64,8 +46,8 @@ void FractalGenerator::start() {
 	thread = new std::thread(&FractalGenerator::threadFunction, this);
 }
 
-void FractalGenerator::halt() {
-	halting.store(true);
+void FractalGenerator::cancel() {
+	state.store(CANCELING);
 }
 
 GenerationStatus FractalGenerator::getStatus() {
@@ -73,9 +55,7 @@ GenerationStatus FractalGenerator::getStatus() {
 		width,
 		height,
 		progress.load(),
-		generating.load(),
-		halting.load(),
-		done.load()
+		state.load()
 	};
 }
 
@@ -87,16 +67,18 @@ void FractalGenerator::doneAsyncCallback(uv_async_t *handle) {
 	FractalGenerator *self = ((FractalGenerator *) handle->data);
 	v8::Isolate *isolate = v8::Isolate::GetCurrent();
 	v8::HandleScope scope(isolate);
-	(*self->doneCallback)(isolate, self->nodeBuffer->Get(isolate),
-			self->halting.load(), self->doneCallbackData);
-	self->nodeBuffer->Reset();
+	GenerationState state = self->state.load();
+	(*self->doneCallback)(isolate, self->path, state, self->doneCallbackData);
 }
 
 void FractalGenerator::threadFunction() {
 	// build fractal here and call uv_async_send when done
 
-	generating.store(true);
+	state.store(GENERATING);
 	progress.store(0);
+
+	// build buffer
+	char *buffer = new char[width * height * 4];
 
 	// does this make things faster or is this redundant with g++ optimization?
 	float fx, fy, a, b, aa, bb, twoab;
@@ -105,8 +87,8 @@ void FractalGenerator::threadFunction() {
 
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
-			if (halting.load()) {
-				generating.store(false);
+			if (state.load() == CANCELING) {
+				state.store(CANCELED);
 				uv_async_send(doneAsync);
 				return;
 			}
@@ -159,11 +141,115 @@ void FractalGenerator::threadFunction() {
 	}
 
 	// set status
-	generating.store(false);
+	state.store(WRITING);
+
+	// write png to path
+
+	// get a file handle
+	FILE *file = std::fopen(path.c_str(), "wb");
+	if (!file) {
+		fail();
+		return;
+	}
+
+	// create png struct
+	png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL,
+	NULL, NULL);
+	if (!png) {
+		std::fclose(file);
+		fail();
+		return;
+	}
+
+	// create png info struct
+	png_infop info = png_create_info_struct(png);
+	if (!info) {
+		std::fclose(file);
+		png_destroy_write_struct(&png, NULL);
+		fail();
+		return;
+	}
+
+	// error handling
+	if (setjmp(png_jmpbuf(png))) {
+		std::fclose(file);
+		png_destroy_write_struct(&png, &info);
+		fail();
+		return;
+	}
+
+	// hand file to png
+	png_init_io(png, file);
+
+	// set image settings
+	png_set_IHDR(png, info, width, height, 8, PNG_COLOR_TYPE_RGBA,
+	PNG_INTERLACE_ADAM7, PNG_COMPRESSION_TYPE_DEFAULT,
+	PNG_FILTER_TYPE_DEFAULT);
+
+	// write image settings
+	png_write_info(png, info);
+
+	// allocate array of arrays (image pointers)
+	png_bytepp image = new png_bytep[height];
+
+	// assign pointers to parts of the array
+	for (int y = 0; i < height; y++) {
+		image[y] = buffer + (y * width);
+	}
+
+	// write the image data
+	png_write_image(png, image);
+
+	// finish the image
+	png_write_end(png, info);
+
+	// free the png struct memory
+	png_destroy_write_struct(&png, &info);
+
+	// release the file handle
+	std::fclose(file);
+
+	// free the image memory
+	delete image;
+	delete buffer;
 
 	// everything is done
-	done.store(true);
+	state.store(DONE);
 
 	// send callback
 	uv_async_send(doneAsync);
+}
+
+void FractalGenerator::fail() {
+	state.store(FAILURE);
+	uv_async_send(doneAsync);
+}
+
+/*
+ * Util functions
+ */
+
+std::string generationStateName(GenerationState state) {
+	switch (state) {
+	case GENERATING:
+		return "generating";
+		break;
+	case WRITING:
+		return "writing";
+		break;
+	case DONE:
+		return "done";
+		break;
+	case CANCELING:
+		return "canceling";
+		break;
+	case CANCELED:
+		return "canceled";
+		break;
+	case FAILURE:
+		return "failure";
+		break;
+	default:
+		return "initializing";
+	}
 }

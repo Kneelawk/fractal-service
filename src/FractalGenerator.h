@@ -6,13 +6,17 @@
 #include <atomic>
 #include <string>
 
+enum GenerationState {
+	INITIALIZING, GENERATING, WRITING, DONE, CANCELING, CANCELED, FAILURE
+};
+
+std::string generationStateName(GenerationState state);
+
 typedef struct {
 	unsigned int width;
 	unsigned int height;
 	unsigned int progress;
-	bool generating;
-	bool halting;
-	bool done;
+	GenerationState state;
 } GenerationStatus;
 
 typedef std::string fractalId;
@@ -30,14 +34,14 @@ public:
 	double fractalX;
 	double fractalY;
 	unsigned int iterations;
+	std::string path;
 
 	FractalGenerator(fractalId id, v8::Isolate *isolate,
-			void (*doneCallback)(v8::Isolate *isolate,
-					v8::Local<v8::Object> nodeBuffer, bool halted,
-					void *doneCallbackData), v8::Local<v8::Value> bufVal,
-			void *doneCallbackData, unsigned int width, unsigned int height,
-			double fractalWidth, double fractalHeight, double fractalX,
-			double fractalY, unsigned int iterations);
+			void (*doneCallback)(v8::Isolate *isolate, std::string path,
+					GenerationState state, void *doneCallbackData),
+			std::string path, void *doneCallbackData, unsigned int width,
+			unsigned int height, double fractalWidth, double fractalHeight,
+			double fractalX, double fractalY, unsigned int iterations);
 	virtual ~FractalGenerator();
 
 	void setDeleteCallback(
@@ -46,7 +50,7 @@ public:
 
 	void start();
 
-	void halt();
+	void cancel();
 
 	GenerationStatus getStatus();
 
@@ -55,21 +59,15 @@ private:
 	std::thread *thread = NULL;
 
 	// fractal generation stats
-	std::atomic_bool generating;
 	std::atomic_uint progress;
-	std::atomic_bool halting;
-	std::atomic_bool done;
-
-	// buffers
-	v8::Global<v8::Object> *nodeBuffer;
-	char *buffer = NULL;
+	std::atomic<GenerationState> state;
 
 	// callback control object
 	uv_async_t *doneAsync;
 
 	// callback
-	void (*doneCallback)(v8::Isolate *isolate, v8::Local<v8::Object> nodeBuffer,
-			bool halted, void *doneCallbackData);
+	void (*doneCallback)(v8::Isolate *isolate, std::string path,
+			GenerationState state, void *doneCallbackData);
 	void *doneCallbackData;
 
 	// delete callback
@@ -80,6 +78,8 @@ private:
 	static void doneAsyncCallback(uv_async_t *handle);
 
 	void threadFunction();
+
+	void fail();
 };
 
 #endif
