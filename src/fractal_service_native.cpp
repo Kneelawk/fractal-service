@@ -12,7 +12,7 @@ typedef struct {
 } FractalData;
 
 void fractalDoneCallback(v8::Isolate *isolate, v8::Local<v8::Object> buffer,
-bool halted, void *customData) {
+		bool halted, void *customData) {
 	FractalData *fd = (FractalData *) customData;
 
 	v8::Local<v8::Function> func = fd->jsCallback.Get(isolate);
@@ -44,7 +44,7 @@ void createFractalGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 	// get args
 	std::string uuid(*v8::String::Utf8Value(info[0]));
 	v8::Local<v8::Function> doneCallback = info[1].As<v8::Function>();
-	v8::Local<v8::Object> buffer = info[2];
+	v8::Local<v8::Object> buffer = info[2]->ToObject();
 	int width = info[3]->Int32Value();
 	int height = info[4]->Int32Value();
 	double fractalWidth = info[5]->NumberValue();
@@ -55,8 +55,8 @@ void createFractalGenerator(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 
 	FractalData *fd = new FractalData;
 	fd->id = uuid;
-	fd->jsCallback = v8::Global<v8::Object>;
-	fd->jsCallback.Reset(info.GetIsolate(), buffer);
+	fd->jsCallback = v8::Global<v8::Function>();
+	fd->jsCallback.Reset(info.GetIsolate(), doneCallback);
 
 	FractalGenerator *gen = new FractalGenerator(uuid, info.GetIsolate(),
 			fractalDoneCallback, buffer, fd, width, height, fractalWidth,
@@ -124,11 +124,18 @@ void containsFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 }
 
 void listFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-	// TODO list fractals
+	// no arguments
+	v8::Local<v8::Array> fractals = Nan::New<v8::Array>(generators.size());
+	auto it = generators.begin();
+	for (int i = 0; i < generators.size(); i++) {
+		fractals->Set(i, Nan::New(it->first).ToLocalChecked());
+		it++;
+	}
+	info.GetReturnValue().Set(fractals);
 }
 
 void haltFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-	// uuid is argument
+// uuid is argument
 	if (info.Length() < 1) {
 		Nan::ThrowTypeError("Wrong number of arguments");
 		return;
@@ -148,7 +155,7 @@ void haltFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 }
 
 void haltAllFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-	// no arguments
+// no arguments
 	for (const auto &elem : generators) {
 		elem.second->halt();
 	}
