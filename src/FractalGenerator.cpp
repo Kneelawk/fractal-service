@@ -1,5 +1,6 @@
 #include <png.h>
 #include <cstdio>
+#include <iostream>
 #include "FractalGenerator.h"
 #include "math_utils.h"
 
@@ -13,10 +14,10 @@ FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
 		std::string path, void *doneCallbackData, unsigned int width,
 		unsigned int height, double fractalWidth, double fractalHeight,
 		double fractalX, double fractalY, unsigned int iterations) :
-		id(id), doneCallback(doneCallback), doneCallbackData(doneCallbackData), width(
-				width), height(height), fractalWidth(fractalWidth), fractalHeight(
-				fractalHeight), fractalX(fractalX), fractalY(fractalY), iterations(
-				iterations) {
+		id(id), doneCallback(doneCallback), path(path), doneCallbackData(
+				doneCallbackData), width(width), height(height), fractalWidth(
+				fractalWidth), fractalHeight(fractalHeight), fractalX(fractalX), fractalY(
+				fractalY), iterations(iterations) {
 
 	doneAsync = new uv_async_t;
 	doneAsync->data = this;
@@ -78,7 +79,7 @@ void FractalGenerator::threadFunction() {
 	progress.store(0);
 
 	// build buffer
-	char *buffer = new char[width * height * 4];
+	unsigned char *buffer = new unsigned char[width * height * 4];
 
 	// does this make things faster or is this redundant with g++ optimization?
 	float fx, fy, a, b, aa, bb, twoab;
@@ -148,6 +149,7 @@ void FractalGenerator::threadFunction() {
 	// get a file handle
 	FILE *file = std::fopen(path.c_str(), "wb");
 	if (!file) {
+		std::cerr << "Failed to open " << path << '\n';
 		fail();
 		return;
 	}
@@ -156,6 +158,7 @@ void FractalGenerator::threadFunction() {
 	png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL,
 	NULL, NULL);
 	if (!png) {
+		std::cerr << "Failed to create the png struct\n";
 		std::fclose(file);
 		fail();
 		return;
@@ -164,6 +167,7 @@ void FractalGenerator::threadFunction() {
 	// create png info struct
 	png_infop info = png_create_info_struct(png);
 	if (!info) {
+		std::cerr << "Failed to create the png info struct\n";
 		std::fclose(file);
 		png_destroy_write_struct(&png, NULL);
 		fail();
@@ -172,6 +176,7 @@ void FractalGenerator::threadFunction() {
 
 	// error handling
 	if (setjmp(png_jmpbuf(png))) {
+		std::cerr << "Png error\n";
 		std::fclose(file);
 		png_destroy_write_struct(&png, &info);
 		fail();
@@ -193,8 +198,8 @@ void FractalGenerator::threadFunction() {
 	png_bytepp image = new png_bytep[height];
 
 	// assign pointers to parts of the array
-	for (int y = 0; i < height; y++) {
-		image[y] = buffer + (y * width);
+	for (int y = 0; y < height; y++) {
+		image[y] = buffer + (y * width * 4);
 	}
 
 	// write the image data

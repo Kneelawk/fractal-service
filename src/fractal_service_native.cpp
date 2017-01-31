@@ -128,6 +128,8 @@ void getStatus(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 				Nan::New(status.progress));
 		out->Set(Nan::New("state").ToLocalChecked(),
 				Nan::New(generationStateName(status.state)).ToLocalChecked());
+		out->Set(Nan::New("done").ToLocalChecked(),
+				Nan::New(status.state == DONE));
 		info.GetReturnValue().Set(out);
 	} else {
 		Nan::ThrowRangeError(

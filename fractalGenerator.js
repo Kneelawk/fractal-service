@@ -1,4 +1,3 @@
-const Png = require('pngjs').PNG;
 const math = require('mathjs');
 const fs = require('fs');
 const path = require('path');
@@ -25,13 +24,8 @@ class Fractal {
     this.constant = math.complex(constantReal, constantImmaginary);
     this.iterations = iterations;
     this.f = f;
-    this.png = new Png({
-      width: imageWidth,
-      height: imageHeight,
-      hasInputAlpha: true
-    });
     native_fractal_service.createFractalGenerator(this.uuid,
-      (halted, buffer) => this.save(halted, buffer), this.png.data, this.imageWidth,
+      (halted, buffer) => this.save(halted, buffer), this.file, this.imageWidth,
       this.imageHeight, this.fractalWidth, this.fractalHeight, this.fractalMinX,
       this.fractalMinY, this.iterations);
   }
@@ -40,8 +34,8 @@ class Fractal {
     native_fractal_service.startGenerator(this.uuid);
   }
 
-  save(halted, buffer) {
-    this.png.pack().pipe(fs.createWriteStream(this.file));
+  save(state, path) {
+    // done with everything
   }
 
   stream() {

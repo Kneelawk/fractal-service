@@ -54,8 +54,7 @@ app.post('/api/progress', (req, res) => {
     totalPixels: status.maxProgress,
     width: status.width,
     height: status.height,
-    generating: status.generating,
-    canceling: status.canceling,
+    state: status.state,
     done: status.done
   }));
 });
@@ -83,8 +82,7 @@ app.post('/api/result', (req, res) => {
       totalPixels: status.maxProgress,
       width: status.width,
       height: status.height,
-      generating: status.generating,
-      canceling: status.canceling,
+      state: status.state,
       done: false
     }));
   }
