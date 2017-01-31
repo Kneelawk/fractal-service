@@ -34,57 +34,55 @@ app.post('/api/generate', (req, res) => {
   }));
 });
 
-app.post('/api/progress', (req, res) => {
-  if (!req.body.uuid) {
-    return res.status(400).send(JSON.stringify({
+app.get('/api/progress', (req, res) => {
+  if (!req.query.uuid) {
+    return res.status(400).send({
       error: 'invalid uuid'
-    }));
+    });
   }
-  if (!fractals[req.body.uuid]) {
-    return res.status(404).send(JSON.stringify({
+  if (!fractals[req.query.uuid]) {
+    return res.status(404).send({
       error: 'no fractal for uuid'
-    }));
+    });
   }
 
-  let fractal = fractals[req.body.uuid];
-  res.type('json');
+  let fractal = fractals[req.query.uuid];
   let status = fractal.status();
-  return res.send(JSON.stringify({
+  return res.send({
     pixelsGenerated: status.progress,
     totalPixels: status.maxProgress,
     width: status.width,
     height: status.height,
     state: status.state,
     done: status.done
-  }));
+  });
 });
 
-app.post('/api/result', (req, res) => {
-  if (!req.body.uuid) {
-    return res.status(400).send(JSON.stringify({
+app.get('/api/result', (req, res) => {
+  if (!req.query.uuid) {
+    return res.status(400).send({
       error: 'invalid uuid'
-    }));
+    });
   }
-  if (!fractals[req.body.uuid]) {
-    return res.status(404).send(JSON.stringify({
+  if (!fractals[req.query.uuid]) {
+    return res.status(404).send({
       error: 'no fractal for uuid'
-    }));
+    });
   }
-  let fractal = fractals[req.body.uuid];
+  let fractal = fractals[req.query.uuid];
   let status = fractal.status();
   if (status.done) {
     res.type('image/png');
     return fractal.stream().pipe(res);
   } else {
-    res.type('json');
-    return res.send(JSON.stringify({
+    return res.send({
       pixelsGenerated: status.progress,
       totalPixels: status.maxProgress,
       width: status.width,
       height: status.height,
       state: status.state,
       done: false
-    }));
+    });
   }
 });
 

@@ -21,6 +21,9 @@ GET /api/progress
   returns: {
     pixelsGenerated: the number of pixels generated so far
     pixelsTotal: the number of pixels in the fractal
+    width: the width of the image being generated
+    height: the height of the image being generated
+    status: the status of the fractal generator (one of: "initializing", "generating", "writing", "canceling", "canceled", "failure", or "done")
     done: whether fractal is finished generating
   }
 
@@ -32,5 +35,8 @@ GET /api/result
     if not completed: {
       pixelsGenerated: the number of pixels generated so far
       pixelsTotal: the number of pixels in the fractal
+      width: the width of the image being generated
+      height: the height of the image being generated
+      status: the status of the fractal generator (one of: "initializing", "generating", "writing", "canceling", "canceled", "failure", or "done")
       done: will always be false
     }
