@@ -40,6 +40,7 @@ FractalGenerator::FractalGenerator(fractalId id, v8::Isolate *isolate,
 	generating.store(false);
 	progress.store(0);
 	halting.store(false);
+	done.store(false);
 }
 
 FractalGenerator::~FractalGenerator() {
@@ -73,7 +74,8 @@ GenerationStatus FractalGenerator::getStatus() {
 		height,
 		progress.load(),
 		generating.load(),
-		halting.load()
+		halting.load(),
+		done.load()
 	};
 }
 
@@ -158,6 +160,9 @@ void FractalGenerator::threadFunction() {
 
 	// set status
 	generating.store(false);
+
+	// everything is done
+	done.store(true);
 
 	// send callback
 	uv_async_send(doneAsync);

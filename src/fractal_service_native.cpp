@@ -132,6 +132,7 @@ void getStatus(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 				Nan::New(status.generating));
 		out->Set(Nan::New("canceling").ToLocalChecked(),
 				Nan::New(status.halting));
+		out->Set(Nan::New("done").ToLocalChecked(), Nan::New(status.done));
 		info.GetReturnValue().Set(out);
 	} else {
 		Nan::ThrowRangeError(

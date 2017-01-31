@@ -12,6 +12,7 @@ typedef struct {
 	unsigned int progress;
 	bool generating;
 	bool halting;
+	bool done;
 } GenerationStatus;
 
 typedef std::string fractalId;
@@ -57,6 +58,7 @@ private:
 	std::atomic_bool generating;
 	std::atomic_uint progress;
 	std::atomic_bool halting;
+	std::atomic_bool done;
 
 	// buffers
 	v8::Global<v8::Object> *nodeBuffer;

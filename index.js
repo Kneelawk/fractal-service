@@ -51,8 +51,12 @@ app.post('/api/progress', (req, res) => {
   let status = fractal.status();
   return res.send(JSON.stringify({
     pixelsGenerated: status.progress,
-    totalPixels: fractal.imageWidth * fractal.imageHeight,
-    done: Fractal.done(status)
+    totalPixels: status.maxProgress,
+    width: status.width,
+    height: status.height,
+    generating: status.generating,
+    canceling: status.canceling,
+    done: status.done
   }));
 });
 
@@ -69,14 +73,18 @@ app.post('/api/result', (req, res) => {
   }
   let fractal = fractals[req.body.uuid];
   let status = fractal.status();
-  if (Fractal.done(status)) {
+  if (status.done) {
     res.type('image/png');
     return fractal.stream().pipe(res);
   } else {
     res.type('json');
     return res.send(JSON.stringify({
       pixelsGenerated: status.progress,
-      totalPixels: fractal.imageWidth * fractal.imageHeight,
+      totalPixels: status.maxProgress,
+      width: status.width,
+      height: status.height,
+      generating: status.generating,
+      canceling: status.canceling,
       done: false
     }));
   }

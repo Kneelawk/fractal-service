@@ -58,10 +58,6 @@ class Fractal {
   }
 }
 
-Fractal.done = function (status) {
-  return status.progress >= status.maxProgress;
-}
-
 Fractal.progress = function (status) {
   return status.progress / status.maxProgress;
 }
