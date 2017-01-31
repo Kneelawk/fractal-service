@@ -139,7 +139,7 @@ void listFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 }
 
 void haltFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-// uuid is argument
+	// uuid is argument
 	JS_LENGTH_CHECK(info, 1)
 	JS_TYPE_CHECK(info, 0, IsString)
 
@@ -153,7 +153,7 @@ void haltFractal(const Nan::FunctionCallbackInfo<v8::Value> &info) {
 }
 
 void haltAllFractals(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-// no arguments
+	// no arguments
 	for (const auto &elem : generators) {
 		elem.second->halt();
 	}
@@ -168,6 +168,12 @@ void init(v8::Local<v8::Object> exports) {
 			Nan::New<v8::FunctionTemplate>(getProgress)->GetFunction());
 	exports->Set(Nan::New("containsFractal").ToLocalChecked(),
 			Nan::New<v8::FunctionTemplate>(containsFractal)->GetFunction());
+	exports->Set(Nan::New("listFractals").ToLocalChecked(),
+			Nan::New<v8::FunctionTemplate>(listFractals)->GetFunction());
+	exports->Set(Nan::New("haltFractal").ToLocalChecked(),
+			Nan::New<v8::FunctionTemplate>(haltFractal)->GetFunction());
+	exports->Set(Nan::New("haltAllFractals").ToLocalChecked(),
+			Nan::New<v8::FunctionTemplate>(haltAllFractals)->GetFunction());
 
 }
 
